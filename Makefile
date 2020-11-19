@@ -91,7 +91,7 @@ build-container: volume
 		/src/ops/relay-container.nix && \
 		cp -L result /src/dist"
 	docker load < dist/result
-	rm -rf dist
+	#rm -rf dist
 	@touch $(flags)/$@
 	@echo "MAKE: Done with $@"
 	@echo

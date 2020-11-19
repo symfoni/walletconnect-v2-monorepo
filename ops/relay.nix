@@ -8,7 +8,7 @@ in
 pkgs.stdenv.mkDerivation {
   name = name;
   src = src;
-  buildInputs = [ pkgs.nodejs-14_x ];
+  buildInputs = [ pkgs.nodejs-14_x pkgs.python38 ];
   HOME=".";
   buildPhase = ''
     make build-lerna
