@@ -91,7 +91,7 @@ build-container: volume
 		/src/ops/relay-container.nix && \
 		cp -L result /src/dist"
 	docker load < dist/result
-	#rm -rf dist
+	rm -rf dist
 	@touch $(flags)/$@
 	@echo "MAKE: Done with $@"
 	@echo
@@ -100,13 +100,19 @@ volume:
 	docker volume create nix-store
 
 bootstrap:
-	npm i --also=dev
+	npm i
 	npx lerna bootstrap --hoist
+	@touch $(flags)/$@
 
-build-lerna: bootstrap
+build-relay: bootstrap
+	npx lerna run build --scope=@walletconnect/relay-server --include-dependencies
+	@touch $(flags)/$@
+
+build-lerna: build-relay bootstrap
 	npx lerna run build
+	@touch $(flags)/$@
 
-build: pull build-lerna build-relay
+build: pull build-lerna
 	@touch $(flags)/$@
 	@echo  "MAKE: Done with $@"
 	@echo
@@ -122,7 +128,7 @@ watch:
 
 relay-dev: dev relay-watch relay-logs
 
-relay-start:
+relay-start: build-relay
 	cd ./packages/relay; npm run start; cd -
 
 dev: pull build
