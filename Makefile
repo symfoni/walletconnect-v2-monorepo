@@ -2,7 +2,6 @@
 BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
 project=walletconnect
 redisImage='redis:5-alpine'
-nginxImage='$(project)/nginx:$(BRANCH)'
 walletConnectImage='$(project)/relay:$(BRANCH)'
 
 ### Makefile internal coordination
@@ -20,8 +19,6 @@ pull:\tdownloads docker images
 setup:\tconfigures domain an certbot email
 
 build-relay:\tbuilds relay docker image
-
-build-nginx:\tbuilds nginx docker image
 
 build:\tbuilds docker images
 
@@ -65,6 +62,7 @@ default:
 
 pull:
 	docker pull $(redisImage)
+	docker pull nixos/nix
 	@touch $(flags)/$@
 	@echo "MAKE: Done with $@"
 	@echo
@@ -80,23 +78,26 @@ setup:
 	@echo "MAKE: Done with $@"
 	@echo
 
-build-relay:
-	docker build \
-		-t $(walletConnectImage) \
-		--build-arg BRANCH=$(BRANCH) \
-		-f ops/relay.Dockerfile .
+build-container: volume
+	mkdir -p dist
+	docker run --name builder --rm \
+		-v nix-store:/nix \
+		-v $(shell pwd):/src \
+		nixos/nix nix-shell \
+		-p bash \
+		--run \
+		"nix-build \
+		--argstr version $(BRANCH) \
+		/src/ops/relay-container.nix && \
+		cp -L result /src/dist"
+	docker load < dist/result
+	rm -rf dist
 	@touch $(flags)/$@
 	@echo "MAKE: Done with $@"
 	@echo
 
-build-nginx: pull
-	docker build \
-		-t $(nginxImage) \
-		--build-arg BRANCH=$(BRANCH) \
-		-f ops/nginx/nginx.Dockerfile ./ops/nginx
-	@touch $(flags)/$@
-	@echo  "MAKE: Done with $@"
-	@echo
+volume:
+	docker volume create nix-store
 
 bootstrap:
 	npm i --also=dev
@@ -105,7 +106,7 @@ bootstrap:
 build-lerna: bootstrap
 	npx lerna run build
 
-build: pull build-lerna build-relay build-nginx
+build: pull build-lerna build-relay
 	@touch $(flags)/$@
 	@echo  "MAKE: Done with $@"
 	@echo
@@ -123,7 +124,6 @@ relay-dev: dev relay-watch relay-logs
 
 dev: pull build
 	RELAY_IMAGE=$(walletConnectImage) \
-	NGINX_IMAGE=$(nginxImage) \
 	docker stack deploy \
 	-c ops/docker-compose.yml \
 	-c ops/docker-compose.dev.yml \
@@ -134,7 +134,6 @@ dev: pull build
 
 dev-monitoring: pull build
 	RELAY_IMAGE=$(walletConnectImage) \
-	NGINX_IMAGE=$(nginxImage) \
 	docker stack deploy \
 	-c ops/docker-compose.yml \
 	-c ops/docker-compose.dev.yml \
@@ -154,9 +153,8 @@ redeploy:
 	$(MAKE) down
 	$(MAKE) dev-monitoring
 
-deploy: setup build cloudflare
+deploy: setup build-container cloudflare
 	RELAY_IMAGE=$(walletConnectImage) \
-	NGINX_IMAGE=$(nginxImage) \
 	PROJECT=$(project) \
 	bash ops/deploy.sh
 	@echo  "MAKE: Done with $@"
@@ -164,7 +162,6 @@ deploy: setup build cloudflare
 
 deploy-monitoring: setup build cloudflare
 	RELAY_IMAGE=$(walletConnectImage) \
-	NGINX_IMAGE=$(nginxImage) \
 	PROJECT=$(project) \
 	MONITORING=true \
 	bash ops/deploy.sh
@@ -190,7 +187,6 @@ upgrade: setup
 	git fetch origin $(BRANCH)
 	git merge origin/$(BRANCH)
 	docker service update --force $(project)_relay
-	docker service update --force $(project)_nginx
 	docker service update --force $(project)_redis
 
 reset:
@@ -206,7 +202,8 @@ clean:
 	@echo
 
 clean-all: clean
-	npx lerna clean
+	npx lerna clean -y
 	rm -rf .makeFlags
+	rm -rf dist
 	@echo  "MAKE: Done with $@"
 	@echo
