@@ -122,6 +122,9 @@ watch:
 
 relay-dev: dev relay-watch relay-logs
 
+relay-start:
+	cd ./packages/relay; npm run start; cd -
+
 dev: pull build
 	RELAY_IMAGE=$(walletConnectImage) \
 	docker stack deploy \

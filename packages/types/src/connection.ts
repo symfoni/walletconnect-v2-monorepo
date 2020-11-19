@@ -26,6 +26,7 @@ export declare namespace ConnectionTypes {
     proposer: Peer;
     signal: Signal;
     permissions: Permissions;
+    ttl: number;
   }
 
   export type ProposedStatus = "proposed";
@@ -63,6 +64,8 @@ export declare namespace ConnectionTypes {
     peer: Peer;
     self: CryptoTypes.Self;
     permissions: Permissions;
+    ttl: number;
+    expiry: number;
   }
 
   export interface UpdateParams {
@@ -89,9 +92,11 @@ export declare namespace ConnectionTypes {
   export interface Settled {
     topic: string;
     relay: RelayTypes.ProtocolOptions;
+    sharedKey: string;
     self: CryptoTypes.Self;
     peer: Peer;
     permissions: Permissions;
+    expiry: number;
   }
 
   export type Created = Settled;
@@ -107,6 +112,7 @@ export declare namespace ConnectionTypes {
     topic: string;
     relay: RelayTypes.ProtocolOptions;
     responder: Peer;
+    expiry: number;
   }
 
   export interface Failed {
