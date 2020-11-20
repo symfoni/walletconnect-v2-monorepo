@@ -8,11 +8,13 @@ volumes:
   letsencrypt:
 
 services:
-  nginx:
-    image: ${NGINX_IMAGE}
-    deploy:
-      mode: global
-    # This port format is needed to get real ip address of the client
+  redis:
+    image: 'redis:5-alpine'
+    volumes:
+      - redis:/data
+
+  relay:
+    image: ${RELAY_IMAGE}
     ports:
       - target: 80
         published: 80
@@ -20,20 +22,8 @@ services:
       - target: 443
         published: 443
         mode: host
-    volumes:
-      - letsencrypt:/etc/letsencrypt
-
-  redis:
-    image: 'redis:5-alpine'
-    volumes:
-      - redis:/data
-
-  # This naming of the docker containers completely defeats the
-  # purpose of Docker swarm and docker load balancing
-  # so we are instead handling the load balancing with
-  # our own nginx container
-  relay:
-    image: ${RELAY_IMAGE}
     environment:
       NODE_ENV: development
       REDIS_URL: redis://redis:6379/0
+    volumes:
+      - letsencrypt:/etc/letsencrypt

@@ -9,11 +9,3 @@ services:
       - "127.0.0.1:5555:5555"
     volumes:
       - ../packages/relay/dist:/app/packages/relay/dist
-
-  nginx:
-    environment:
-      CONTAINER_NAME: relay
-      APP_QTY: 1
-    depends_on:
-      - relay
-
