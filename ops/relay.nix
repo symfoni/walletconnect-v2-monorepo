@@ -4,24 +4,19 @@
 , src ? ../dist/relay.tar.gz
 }:
 let
-  relayjson = builtins.fromJSON (builtins.readFile ../packages/relay/package.json);
-  temp = relayjson.name + "-" + relayjson.version + ".tgz";
-  tgzFile = builtins.replaceStrings ["@" "/"] ["" "-"] temp;
 in
 pkgs.stdenv.mkDerivation {
   name = name;
-  src = ../.;
+  src = src;
   buildInputs = [ pkgs.nodejs-14_x pkgs.python38 ];
   buildPhase = ''
     export HOME=$TMPDIR
     make build-relay
-    cd packages/relay
-    npx bundle-deps && npm pack
+    cd packages/relay && npx bundle-deps
+    tgzFile=$(npm pack | tail -1)
   '';
   installPhase = ''
     mkdir -pv $out
-    echo Sup ${tgzFile}
-    tar xvf --strip-components=1 ${tgzFile} -C $out
-    ls $out
+    tar xf  $tgzFile  --strip-components=1 -C $out
   '';
 }
