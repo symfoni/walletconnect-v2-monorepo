@@ -55,6 +55,8 @@ clean-all:\tcleans current all local config
 
 endef
 
+log_end=@echo "MAKE: Done with $@"; echo
+
 ### Rules
 export DEFAULT_TEXT
 default:
@@ -64,8 +66,6 @@ pull:
 	docker pull $(redisImage)
 	docker pull nixos/nix
 	@touch $(flags)/$@
-	@echo "MAKE: Done with $@"
-	@echo
 
 setup:
 	@read -p 'Relay URL domain: ' relay; \
@@ -75,8 +75,7 @@ setup:
 	@read -p 'Is your DNS configured with cloudflare proxy? [y/N]: ' cf; \
 	echo "CLOUDFLARE="$${cf:-false} >> config
 	@touch $(flags)/$@
-	@echo "MAKE: Done with $@"
-	@echo
+	$(log_end)
 
 build-container: volume
 	rm -rf dist
@@ -90,33 +89,35 @@ build-container: volume
 		--run \
 		"nix-build \
 		--argstr version $(BRANCH) \
+		--argstr name $(project)/relay \
 		/src/ops/relay-container.nix && \
 		cp -L result /src/dist"
 	docker load < dist/result
 	@touch $(flags)/$@
-	@echo "MAKE: Done with $@"
-	@echo
+	$(log_end)
 
 volume:
 	docker volume create nix-store
+	$(log_end)
 
 bootstrap:
 	npm i
 	npx lerna bootstrap
 	@touch $(flags)/$@
+	$(log_end)
 
 build-relay: bootstrap
 	npx lerna run build --scope=@walletconnect/relay-server --include-dependencies
 	@touch $(flags)/$@
+	$(log_end)
 
-build-lerna: build-relay bootstrap
+build-lerna: bootstrap
 	npx lerna run build
-	@touch $(flags)/$@
+	$(log_end)
 
 build: pull build-lerna
 	@touch $(flags)/$@
-	@echo  "MAKE: Done with $@"
-	@echo
+	$(log_end)
 
 test-client:
 	cd ./packages/client; npm run test; cd -
@@ -124,15 +125,15 @@ test-client:
 relay-logs:
 	docker service logs -f --raw dev_$(project)_relay --tail 500
 
-watch:
-	npx lerna run watch --stream
-
 relay-dev: dev relay-watch relay-logs
 
 relay-start: build-relay
 	cd ./packages/relay; npm run start; cd -
 
-dev: pull build
+watch-all:
+	npx lerna run watch --stream
+
+dev: pull build-container
 	RELAY_IMAGE=$(walletConnectImage) \
 	docker stack deploy \
 	-c ops/docker-compose.yml \
