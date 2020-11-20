@@ -102,7 +102,7 @@ volume:
 
 bootstrap:
 	npm i
-	npx lerna bootstrap --hoist
+	npx lerna bootstrap
 	@touch $(flags)/$@
 
 build-relay: bootstrap
