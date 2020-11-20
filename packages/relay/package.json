@@ -44,13 +44,6 @@
     "ws": "^7.0.0"
   },
   "devDependencies": {
-    "@babel/cli": "^7.12.1",
-    "@babel/core": "^7.12.3",
-    "@babel/node": "^7.12.1",
-    "@babel/polyfill": "^7.12.1",
-    "@babel/preset-env": "^7.12.1",
-    "@babel/preset-typescript": "^7.12.1",
-    "@babel/register": "^7.12.1",
     "@types/axios": "^0.14.0",
     "@types/bluebird": "^3.5.27",
     "@types/chai": "^4.2.14",
@@ -68,5 +61,20 @@
     "prettier": "^1.19.1",
     "ts-node": "^9.0.0",
     "typescript": "^3.7.5"
-  }
+  },
+  "bundledDependencies": [
+    "@walletconnect/types",
+    "@walletconnect/utils",
+    "axios",
+    "bluebird",
+    "enc-utils",
+    "fastify",
+    "fastify-helmet",
+    "pino",
+    "pino-pretty",
+    "redis",
+    "rpc-json-utils",
+    "safe-json-utils",
+    "ws"
+  ]
 }
