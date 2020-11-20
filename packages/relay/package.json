@@ -68,20 +68,5 @@
     "prettier": "^1.19.1",
     "ts-node": "^9.0.0",
     "typescript": "^3.7.5"
-  },
-  "bundledDependencies": [
-    "@walletconnect/types",
-    "@walletconnect/utils",
-    "axios",
-    "bluebird",
-    "enc-utils",
-    "fastify",
-    "fastify-helmet",
-    "pino",
-    "pino-pretty",
-    "redis",
-    "rpc-json-utils",
-    "safe-json-utils",
-    "ws"
-  ]
+  }
 }
