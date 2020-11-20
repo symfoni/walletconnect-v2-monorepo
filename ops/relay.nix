@@ -1,24 +1,27 @@
 {
   pkgs ? import <nixpkgs> {}
 , name ? "relay"
-, src ? ../.
+, src ? ../dist/relay.tar.gz
 }:
 let
+  relayjson = builtins.fromJSON (builtins.readFile ../packages/relay/package.json);
+  temp = relayjson.name + "-" + relayjson.version + ".tgz";
+  tgzFile = builtins.replaceStrings ["@" "/"] ["" "-"] temp;
 in
 pkgs.stdenv.mkDerivation {
   name = name;
-  # TODO, src can be a tar file
-  src = src;
+  src = ../.;
   buildInputs = [ pkgs.nodejs-14_x pkgs.python38 ];
-  HOME=".";
   buildPhase = ''
+    export HOME=$TMPDIR
     make build-relay
+    cd packages/relay
+    npx bundle-deps && npm pack
   '';
   installPhase = ''
-    mkdir $out
-    cd packages/relay
-    npx npm-pack-all
-    mv *.tgz $out
-    tar --strip-components=1 -xvf $out/*.tgz -C $out
+    mkdir -pv $out
+    echo Sup ${tgzFile}
+    tar xvf --strip-components=1 ${tgzFile} -C $out
+    ls $out
   '';
 }

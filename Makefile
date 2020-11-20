@@ -79,7 +79,9 @@ setup:
 	@echo
 
 build-container: volume
+	rm -rf dist
 	mkdir -p dist
+	git archive --format=tar.gz -o dist/relay.tar.gz --prefix=relay/ HEAD
 	docker run --name builder --rm \
 		-v nix-store:/nix \
 		-v $(shell pwd):/src \
@@ -91,7 +93,6 @@ build-container: volume
 		/src/ops/relay-container.nix && \
 		cp -L result /src/dist"
 	docker load < dist/result
-	rm -rf dist
 	@touch $(flags)/$@
 	@echo "MAKE: Done with $@"
 	@echo
