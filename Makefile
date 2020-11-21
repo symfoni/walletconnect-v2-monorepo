@@ -125,6 +125,9 @@ test-client:
 relay-logs:
 	docker service logs -f --raw dev_$(project)_relay --tail 500
 
+relay-watch:
+	npx lerna run watch --scope=@walletconnect/relay
+
 relay-dev: dev relay-watch relay-logs
 
 relay-start: build-relay

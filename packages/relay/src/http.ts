@@ -1,3 +1,5 @@
+import fs from "fs";
+import path from "path";
 import Helmet from "fastify-helmet";
 import pino, { Logger } from "pino";
 import fastify, { FastifyInstance } from "fastify";
@@ -24,7 +26,29 @@ export class HttpService {
       typeof opts?.logger !== "undefined" && typeof opts?.logger !== "string"
         ? opts.logger
         : pino(getLoggerOptions(opts?.logger));
-    this.app = fastify({ logger });
+        /*
+           
+`privkey.pem`  : the private key for your certificate.
+`fullchain.pem`: the certificate file used in most server software.
+`chain.pem`    : used for OCSP stapling in Nginx >=1.3.7.
+`cert.pem`     : will break many server configurations, and should not be used
+                 without reading further documentation (see link below).
+
+WARNING: DO NOT MOVE OR RENAME THESE FILES!
+         Certbot expects these files to remain in this location in order
+         to function properly!
+
+We recommend not moving these files. For more information, see the Certbot
+User Guide at https://certbot.eff.org/docs/using.html#where-are-my-certificates.
+           */
+    this.app = fastify({
+      logger: logger,
+      http2: true,
+      https: {
+        key: fs.readFileSync(path.join(__dirname, '..', 'https', 'fastify.key')),
+        cert: fs.readFileSync(path.join('etc', 'letsencrypt', 'live', domain, 'fullchain.pem'))
+      }
+    });
     this.logger = logger.child({ context: "server" });
     this.redis = new RedisService(this.logger);
     this.initialize();

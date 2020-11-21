@@ -85,7 +85,7 @@ let
       ${pkgs.coreutils}/bin/sleep 4 # give renewcerts a sec to do it's first check
 
       echo "Entrypoint finished, executing node..."; echo
-      ${pkgs.nodejs-14_x}/bin/node ${relay}/dist
+      ${pkgs.nodePackages.nodemon}/bin/node ${relay}/dist
     }
 
     main
@@ -94,10 +94,6 @@ in
 pkgs.dockerTools.buildLayeredImage {
   name = name;
   tag = version;
-  contents = [ 
-    pkgs.python38Packages.certbot-dns-cloudflare
-    relay
-  ];
   config = {
     Entrypoint = [ entrypoint ];
   };

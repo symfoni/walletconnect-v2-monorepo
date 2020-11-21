@@ -27,3 +27,4 @@ zip
 .idea
 .rts2_cache_*
 .nyc_output
+config
