@@ -143,7 +143,7 @@ dev: pull build-container
 	@echo
 
 
-dev-monitoring: pull build
+dev-monitoring: pull build-relay build-container
 	RELAY_IMAGE=$(walletConnectImage) \
 	docker stack deploy \
 	-c ops/docker-compose.yml \

@@ -3,6 +3,7 @@ version: "3.7"
 volumes:
   grafana:
   prometheus:
+  letsencrypt:
 
 networks:
   default:

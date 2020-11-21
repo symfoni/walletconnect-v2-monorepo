@@ -2,6 +2,13 @@ version: '3.7'
 
 services:
   relay:
+    environment:
+      DOMAIN_URL: ${BRIDGE_URL}
+      APP_ENV: production
+      EMAIL: ${CERTBOT_EMAIL}
+      CONTAINER_NAME: bridge
+      APP_PORT: 5000
+      CLOUDFLARE: ${CLOUDFLARE}
     image: ${RELAY_IMAGE}
     environment:
       NODE_ENV: production
