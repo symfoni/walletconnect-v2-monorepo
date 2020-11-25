@@ -9,7 +9,6 @@ let
   entrypoint = pkgs.writeScript "entrypoint.sh" ''
     #!${pkgs.stdenv.shell}
     set -e
-    # Set default variables
     root_domain="''${DOMAIN_URL:-localhost}"
     manage_root_domain="''${MANAGE_ROOT_DOMAIN:-true}"
     email="''${EMAIL:-noreply@gmail.com}"
@@ -87,7 +86,6 @@ let
       echo "Entrypoint finished, executing node..."; echo
       ${pkgs.nodePackages.nodemon}/bin/node ${relay}/dist
     }
-
     main
   '';
 in

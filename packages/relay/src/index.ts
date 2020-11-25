@@ -3,6 +3,7 @@ import { HttpService } from "./http";
 
 const { app } = new HttpService({
   logger: config.debug ? "debug" : "warn",
+  certsDir: process.env.LETSENCRYPT || `/etc/letsencrypt/live`
 });
 
 app.listen(+config.port, config.host, err => {

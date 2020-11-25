@@ -12,7 +12,6 @@ services:
     image: 'redis:5-alpine'
     volumes:
       - redis:/data
-
   relay:
     image: ${RELAY_IMAGE}
     ports:
