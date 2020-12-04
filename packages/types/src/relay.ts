@@ -1,5 +1,5 @@
 import { Logger } from "pino";
-import { IJsonRpcProvider, JsonRpcPayload, IEvents } from "rpc-json-types";
+import { IJsonRpcProvider, JsonRpcPayload, IEvents } from "@json-rpc-tools/types";
 
 import { CryptoTypes } from "./crypto";
 
@@ -30,12 +30,14 @@ export declare namespace RelayTypes {
     ttl: number;
   }
 
+  export interface SubscriptionData {
+    topic: string;
+    message: string;
+  }
+
   export interface SubscriptionParams {
     id: string;
-    data: {
-      topic: string;
-      message: string;
-    };
+    data: SubscriptionData;
   }
 
   export interface UnsubscribeParams {
@@ -59,7 +61,7 @@ export abstract class IRelay extends IEvents {
 
   public abstract context: string;
 
-  constructor(public logger: Logger, provider?: IJsonRpcProvider) {
+  constructor(public logger: Logger, provider?: string | IJsonRpcProvider) {
     super();
   }
 

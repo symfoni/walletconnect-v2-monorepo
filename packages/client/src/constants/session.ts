@@ -1,4 +1,4 @@
-import { SessionTypes, SignalTypes } from "@walletconnect/types";
+import { NotificationPermissions, SessionTypes, SignalTypes } from "@walletconnect/types";
 
 export const SESSION_JSONRPC = {
   propose: "wc_sessionPropose",
@@ -6,6 +6,7 @@ export const SESSION_JSONRPC = {
   update: "wc_sessionUpdate",
   delete: "wc_sessionDelete",
   payload: "wc_sessionPayload",
+  notification: "wc_sessionNotification",
 };
 
 export const SESSION_CONTEXT = "session";
@@ -28,6 +29,7 @@ export const SESSION_EVENTS = {
   settled: "session_settled",
   updated: "session_updated",
   deleted: "session_deleted",
+  notification: "session_notification",
 };
 
 export const SESSION_REASONS = {
@@ -36,3 +38,27 @@ export const SESSION_REASONS = {
   responded: "Session proposal responded",
   acknowledged: "Session response acknowledged",
 };
+
+export const SESSION_EMPTY_PERMISSIONS = {
+  jsonrpc: {
+    methods: [],
+  },
+  blockchain: {
+    chainIds: [],
+  },
+  notifications: {
+    types: [],
+  },
+} as SessionTypes.ProposedPermissions;
+
+export const SESSION_EMPTY_RESPONSE = {
+  metadata: {
+    name: "",
+    description: "",
+    url: "",
+    icons: [],
+  },
+  state: {
+    accountIds: [],
+  },
+} as SessionTypes.Response;

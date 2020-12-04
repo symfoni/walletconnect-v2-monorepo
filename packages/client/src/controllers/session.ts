@@ -6,6 +6,7 @@ import {
   SessionTypes,
   SubscriptionEvent,
   CryptoTypes,
+  NotificationPermissions,
 } from "@walletconnect/types";
 import {
   deriveSharedKey,
@@ -27,7 +28,7 @@ import {
   isJsonRpcRequest,
   JsonRpcResponse,
   isJsonRpcError,
-} from "rpc-json-utils";
+} from "@json-rpc-tools/utils";
 
 import { Subscription } from "./subscription";
 import {
@@ -40,6 +41,23 @@ import {
   SESSION_SIGNAL_METHOD_CONNECTION,
   SESSION_DEFAULT_SUBSCRIBE_TTL,
 } from "../constants";
+
+function settlePermissions(
+  permissions: SessionTypes.ProposedPermissions,
+  controllerPublicKey: string,
+): SessionTypes.SettledPermissions {
+  const controller: CryptoTypes.Participant = { publicKey: controllerPublicKey };
+  return {
+    ...permissions,
+    notifications: {
+      types: permissions.notifications.types,
+      controller,
+    },
+    state: {
+      controller,
+    },
+  };
+}
 
 export class Session extends ISession {
   public pending: Subscription<SessionTypes.Pending>;
@@ -77,6 +95,21 @@ export class Session extends ISession {
 
   public async get(topic: string): Promise<SessionTypes.Settled> {
     return this.settled.get(topic);
+  }
+
+  public async notify(params: SessionTypes.NotifyParams): Promise<void> {
+    const session = await this.settled.get(params.topic);
+    if (
+      session.self.publicKey !== session.permissions.notifications.controller.publicKey &&
+      !session.permissions.notifications.types.includes(params.type)
+    ) {
+      const errorMessage = `Unauthorized Notification Type Requested: ${params.type}`;
+      this.logger.error(errorMessage);
+      throw new Error(errorMessage);
+    }
+    const notification: SessionTypes.Notification = { type: params.type, data: params.data };
+    const request = formatJsonRpcRequest(SESSION_JSONRPC.notification, notification);
+    this.send(params.topic, request);
   }
 
   public async send(topic: string, payload: JsonRpcPayload, chainId?: string): Promise<void> {
@@ -149,16 +182,14 @@ export class Session extends ISession {
           metadata: response.metadata,
         };
         const expiry = Date.now() + proposal.ttl;
-
         const state: SessionTypes.State = {
           accountIds: params.response.state.accountIds,
-          controller: { publicKey: self.publicKey },
         };
         const session = await this.settle({
           relay,
           self,
           peer: proposal.proposer,
-          permissions: proposal.permissions,
+          permissions: settlePermissions(proposal.permissions, self.publicKey),
           ttl: proposal.ttl,
           expiry,
           state,
@@ -341,7 +372,10 @@ export class Session extends ISession {
           relay: pending.relay,
           self: pending.self,
           peer: request.params.responder,
-          permissions: pending.proposal.permissions,
+          permissions: settlePermissions(
+            pending.proposal.permissions,
+            request.params.responder.publicKey,
+          ),
           ttl: pending.proposal.ttl,
           expiry: request.params.expiry,
           state: request.params.state,
@@ -393,7 +427,7 @@ export class Session extends ISession {
 
   protected async onMessage(payloadEvent: SubscriptionEvent.Payload): Promise<void> {
     const { topic, payload } = payloadEvent;
-    this.logger.debug(`Receiving Connection message`);
+    this.logger.debug(`Receiving Session message`);
     this.logger.trace({ type: "method", method: "onMessage", topic, payload });
     if (isJsonRpcRequest(payload)) {
       const request = payload as JsonRpcRequest;
@@ -406,6 +440,9 @@ export class Session extends ISession {
         case SESSION_JSONRPC.update:
           await this.onUpdate(payloadEvent);
           break;
+        case SESSION_JSONRPC.notification:
+          await this.onNotification(payloadEvent);
+          break;
         case SESSION_JSONRPC.delete:
           await this.settled.delete(session.topic, request.params.reason);
           break;
@@ -416,9 +453,7 @@ export class Session extends ISession {
           break;
       }
     } else {
-      this.logger.info(`Emitting ${SESSION_EVENTS.payload}`);
-      this.logger.debug({ type: "event", event: SESSION_EVENTS.payload, data: payloadEvent });
-      this.events.emit(SESSION_EVENTS.payload, payloadEvent);
+      this.onPayloadEvent(payloadEvent);
     }
   }
 
@@ -427,7 +462,7 @@ export class Session extends ISession {
     const request = payloadEvent.payload as JsonRpcRequest<SessionTypes.Payload>;
     const { payload, chainId } = request.params;
     const sessionPayloadEvent: SessionTypes.PayloadEvent = { topic, payload, chainId };
-    this.logger.debug(`Receiving Connection payload`);
+    this.logger.debug(`Receiving Session payload`);
     this.logger.trace({ type: "method", method: "onPayload", ...sessionPayloadEvent });
     if (isJsonRpcRequest(payload)) {
       const request = payload as JsonRpcRequest;
@@ -438,21 +473,9 @@ export class Session extends ISession {
         this.send(session.topic, formatJsonRpcError(request.id, errorMessage));
         return;
       }
-      this.logger.info(`Emitting ${SESSION_EVENTS.payload}`);
-      this.logger.debug({
-        type: "event",
-        event: SESSION_EVENTS.payload,
-        data: sessionPayloadEvent,
-      });
-      this.events.emit(SESSION_EVENTS.payload, sessionPayloadEvent);
+      this.onPayloadEvent(sessionPayloadEvent);
     } else {
-      this.logger.info(`Emitting ${SESSION_EVENTS.payload}`);
-      this.logger.debug({
-        type: "event",
-        event: SESSION_EVENTS.payload,
-        data: sessionPayloadEvent,
-      });
-      this.events.emit(SESSION_EVENTS.payload, sessionPayloadEvent);
+      this.onPayloadEvent(sessionPayloadEvent);
     }
   }
 
@@ -485,7 +508,7 @@ export class Session extends ISession {
     let update: SessionTypes.Update;
     if (typeof params.update.state !== "undefined") {
       const state = session.state;
-      if (participant.publicKey === state.controller.publicKey) {
+      if (participant.publicKey === session.permissions.state.controller.publicKey) {
         state.accountIds = params.update.state.accountIds || state.accountIds;
       }
       update = { state };
@@ -498,7 +521,25 @@ export class Session extends ISession {
     return update;
   }
 
+  protected async onNotification(event: SubscriptionEvent.Payload) {
+    const notification = (event.payload as JsonRpcRequest<SessionTypes.Notification>).params;
+    const notificationEvent: SessionTypes.NotificationEvent = {
+      topic: event.topic,
+      type: notification.type,
+      data: notification.data,
+    };
+    this.logger.info(`Emitting ${SESSION_EVENTS.notification}`);
+    this.logger.debug({ type: "event", event: SESSION_EVENTS.notification, notificationEvent });
+    this.events.emit(SESSION_EVENTS.notification, notificationEvent);
+  }
+
   // ---------- Private ----------------------------------------------- //
+
+  private async onPayloadEvent(payloadEvent: SessionTypes.PayloadEvent) {
+    this.logger.info(`Emitting ${SESSION_EVENTS.payload}`);
+    this.logger.debug({ type: "event", event: SESSION_EVENTS.payload, data: payloadEvent });
+    this.events.emit(SESSION_EVENTS.payload, payloadEvent);
+  }
 
   private async onPendingPayloadEvent(event: SubscriptionEvent.Payload) {
     if (isJsonRpcRequest(event.payload)) {

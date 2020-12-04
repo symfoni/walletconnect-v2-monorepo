@@ -1,10 +1,11 @@
 import "mocha";
 import { expect } from "chai";
-import { formatJsonRpcRequest, formatJsonRpcResult, isJsonRpcRequest } from "rpc-json-utils";
+import { formatJsonRpcRequest, formatJsonRpcResult, isJsonRpcRequest } from "@json-rpc-tools/utils";
 
-import { SessionTypes, ConnectionTypes, SubscriptionEvent } from "@walletconnect/types";
+import { SessionTypes, ConnectionTypes } from "@walletconnect/types";
 
 import Client, { CLIENT_EVENTS, SUBSCRIPTION_EVENTS } from "../src";
+
 import {
   TEST_CLIENT_OPTIONS,
   TEST_PERMISSIONS_CHAIN_IDS,
@@ -15,6 +16,7 @@ import {
   TEST_ETHEREUM_ACCOUNTS,
   TEST_SESSION_ACCOUNT_IDS,
   TEST_SESSION_STATE,
+  Time,
 } from "./shared";
 
 describe("Client", () => {
@@ -29,12 +31,7 @@ describe("Client", () => {
     let result: string[] = [];
 
     // timestamps & elapsed time
-    const timestamps = {
-      connection: { started: 0, elapsed: 0 },
-      session: { started: 0, elapsed: 0 },
-      connect: { started: 0, elapsed: 0 },
-      request: { started: 0, elapsed: 0 },
-    };
+    const time = new Time();
 
     // init clients
     const clientA = await Client.init({ ...TEST_CLIENT_OPTIONS, overrideContext: "clientA" });
@@ -43,12 +40,12 @@ describe("Client", () => {
     // connect two clients
     await Promise.all([
       new Promise(async (resolve, reject) => {
-        timestamps.connect.started = Date.now();
+        time.start("connect");
         await clientA.connect({
           metadata: TEST_APP_METADATA_A,
           permissions: TEST_PERMISSIONS,
         });
-        timestamps.connect.elapsed = Date.now() - timestamps.connect.started;
+        time.stop("connect");
         resolve();
       }),
       new Promise(async (resolve, reject) => {
@@ -56,9 +53,9 @@ describe("Client", () => {
         clientA.on(
           CLIENT_EVENTS.connection.proposal,
           async (proposal: ConnectionTypes.Proposal) => {
-            clientA.logger.warn(`TEST >> Connection Proposal`);
-            await clientB.respond({ approved: true, uri: proposal.signal.params.uri });
-            clientA.logger.warn(`TEST >> Connection Responded`);
+            clientB.logger.warn(`TEST >> Connection Proposal`);
+            await clientB.tether({ uri: proposal.signal.params.uri });
+            clientB.logger.warn(`TEST >> Connection Responded`);
             resolve();
           },
         );
@@ -66,8 +63,11 @@ describe("Client", () => {
       new Promise(async (resolve, reject) => {
         clientB.on(CLIENT_EVENTS.session.proposal, async (proposal: SessionTypes.Proposal) => {
           clientB.logger.warn(`TEST >> Session Proposal`);
-          const response = { state: TEST_SESSION_STATE, metadata: TEST_APP_METADATA_B };
-          await clientB.respond({ approved: true, proposal, response });
+          const response: SessionTypes.Response = {
+            state: TEST_SESSION_STATE,
+            metadata: TEST_APP_METADATA_B,
+          };
+          await clientB.approve({ proposal, response });
           clientB.logger.warn(`TEST >> Session Responded`);
           resolve();
         });
@@ -90,28 +90,28 @@ describe("Client", () => {
       new Promise(async (resolve, reject) => {
         clientA.connection.pending.on(SUBSCRIPTION_EVENTS.created, async () => {
           clientA.logger.warn(`TEST >> Connection Proposed`);
-          timestamps.connection.started = Date.now();
+          time.start("connection");
           resolve();
         });
       }),
       new Promise(async (resolve, reject) => {
         clientB.connection.pending.on(SUBSCRIPTION_EVENTS.deleted, async () => {
           clientB.logger.warn(`TEST >> Connection Acknowledged`);
-          timestamps.connection.elapsed = Date.now() - timestamps.connection.started;
+          time.stop("connection");
           resolve();
         });
       }),
       new Promise(async (resolve, reject) => {
         clientA.session.pending.on(SUBSCRIPTION_EVENTS.created, async () => {
           clientA.logger.warn(`TEST >> Session Proposed`);
-          timestamps.session.started = Date.now();
+          time.start("session");
           resolve();
         });
       }),
       new Promise(async (resolve, reject) => {
         clientB.session.pending.on(SUBSCRIPTION_EVENTS.deleted, async () => {
           clientB.logger.warn(`TEST >> Session Acknowledged`);
-          timestamps.session.elapsed = Date.now() - timestamps.session.started;
+          time.stop("session");
           resolve();
         });
       }),
@@ -122,11 +122,15 @@ describe("Client", () => {
       new Promise(async (resolve, reject) => {
         clientB.on(
           CLIENT_EVENTS.session.payload,
-          async (payloadEvent: SubscriptionEvent.Payload) => {
+          async (payloadEvent: SessionTypes.PayloadEvent) => {
             if (typeof sessionB === "undefined") throw new Error("Missing session for client B");
-            if (isJsonRpcRequest(payloadEvent.payload) && payloadEvent.topic === sessionB.topic) {
+            if (
+              isJsonRpcRequest(payloadEvent.payload) &&
+              payloadEvent.topic === sessionB.topic &&
+              payloadEvent.chainId === TEST_PERMISSIONS_CHAIN_IDS[0]
+            ) {
               clientB.logger.warn(`TEST >> JSON-RPC Request Received`);
-              await clientB.resolve({
+              await clientB.respond({
                 topic: sessionB.topic,
                 response: formatJsonRpcResult(payloadEvent.payload.id, TEST_ETHEREUM_ACCOUNTS),
               });
@@ -139,24 +143,24 @@ describe("Client", () => {
       new Promise(async (resolve, reject) => {
         clientA.logger.warn(`TEST >> JSON-RPC Request Sent`);
         if (typeof sessionA === "undefined") throw new Error("Missing session for client A");
-        timestamps.request.started = Date.now();
+        time.start("request");
         result = await clientA.request({
           topic: sessionA.topic,
+          chainId: TEST_PERMISSIONS_CHAIN_IDS[0],
           request: formatJsonRpcRequest("eth_accounts", []),
         });
         clientA.logger.warn(`TEST >> JSON-RPC Response Received`);
-        timestamps.request.elapsed = Date.now() - timestamps.request.started;
-
+        time.stop("request");
         resolve();
       }),
     ]);
 
     if (typeof sessionA === "undefined") throw new Error("Missing session for client A");
     if (typeof sessionB === "undefined") throw new Error("Missing session for client B");
-    clientB.logger.warn(`TEST >> Connection Elapsed Time: ${timestamps.connection.elapsed}ms`);
-    clientB.logger.warn(`TEST >> Session Elapsed Time: ${timestamps.session.elapsed}ms`);
-    clientB.logger.warn(`TEST >> Connect Elapsed Time: ${timestamps.connect.elapsed}ms`);
-    clientB.logger.warn(`TEST >> Request Elapsed Time: ${timestamps.request.elapsed}ms`);
+    clientB.logger.warn(`TEST >> Connection Elapsed Time: ${time.elapsed("connection")}ms`);
+    clientB.logger.warn(`TEST >> Session Elapsed Time: ${time.elapsed("session")}ms`);
+    clientB.logger.warn(`TEST >> Connect Elapsed Time: ${time.elapsed("connect")}ms`);
+    clientB.logger.warn(`TEST >> Request Elapsed Time: ${time.elapsed("request")}ms`);
     // session data
     expect(sessionA.topic).to.eql(sessionB.topic);
     expect(sessionA.relay.protocol).to.eql(sessionB.relay.protocol);
@@ -167,9 +171,11 @@ describe("Client", () => {
     // blockchain state
     expect(sessionA.state.accountIds).to.eql(TEST_SESSION_ACCOUNT_IDS);
     expect(sessionA.state.accountIds).to.eql(sessionB.state.accountIds);
-    expect(sessionA.state.controller.publicKey).to.eql(sessionB.self.publicKey);
-    expect(sessionB.state.controller.publicKey).to.eql(sessionB.self.publicKey);
     // blockchain permissions
+    expect(sessionA.permissions.state.controller.publicKey).to.eql(sessionB.self.publicKey);
+    expect(sessionB.permissions.state.controller.publicKey).to.eql(sessionB.self.publicKey);
+    expect(sessionA.permissions.notifications.controller.publicKey).to.eql(sessionB.self.publicKey);
+    expect(sessionB.permissions.notifications.controller.publicKey).to.eql(sessionB.self.publicKey);
     expect(sessionA.permissions.blockchain.chainIds).to.eql(TEST_PERMISSIONS_CHAIN_IDS);
     expect(sessionA.permissions.blockchain.chainIds).to.eql(
       sessionB.permissions.blockchain.chainIds,

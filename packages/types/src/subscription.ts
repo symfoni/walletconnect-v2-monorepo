@@ -1,4 +1,4 @@
-import { JsonRpcPayload, IEvents } from "rpc-json-types";
+import { JsonRpcPayload, IEvents } from "@json-rpc-tools/types";
 import { Logger } from "pino";
 
 import { IClient } from "./client";
@@ -69,5 +69,5 @@ export abstract class ISubscription<Data> extends IEvents {
 
   // ---------- Protected ----------------------------------------------- //
 
-  protected abstract onMessage(payloadEvent: SubscriptionEvent.Payload): Promise<any>;
+  protected abstract onPayload(payloadEvent: SubscriptionEvent.Payload): Promise<any>;
 }

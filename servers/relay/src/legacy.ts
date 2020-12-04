@@ -1,4 +1,4 @@
-import { formatLoggerContext } from "@walletconnect/utils";
+import { formatLoggerContext } from "./utils";
 import { Logger } from "pino";
 import { safeJsonStringify } from "safe-json-utils";
 import { SubscriptionService } from "./subscription";
@@ -59,13 +59,13 @@ export class LegacyService {
 
     const subscriber = { topic, socketId };
 
-    await this.subscription.setSubscriber(subscriber);
+    await this.subscription.set(subscriber);
 
     await this.pushPendingPublished(socketId, topic);
   }
 
   private async onPublishRequest(socketId: string, socketMessage: LegacySocketMessage) {
-    const subscribers = await this.subscription.getSubscribers(socketMessage.topic, socketId);
+    const subscribers = await this.subscription.get(socketMessage.topic, socketId);
 
     if (!socketMessage.silent) {
       await this.notification.push(socketMessage.topic);

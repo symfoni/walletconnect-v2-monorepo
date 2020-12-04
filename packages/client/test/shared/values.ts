@@ -4,7 +4,7 @@ import { ClientOptions, SessionTypes } from "@walletconnect/types";
 export const TEST_RELAY_PROVIDER_URL = "ws://localhost:5555";
 
 export const TEST_CLIENT_OPTIONS: ClientOptions = {
-  logger: "warn",
+  logger: "debug",
   relayProvider: TEST_RELAY_PROVIDER_URL,
 };
 
@@ -18,7 +18,7 @@ export const TEST_PERMISSIONS_JSONRPC_METHODS: string[] = [
   "personal_sign",
 ];
 
-export const TEST_PERMISSIONS: SessionTypes.Permissions = {
+export const TEST_PERMISSIONS: SessionTypes.BasePermissions = {
   blockchain: {
     chainIds: TEST_PERMISSIONS_CHAIN_IDS,
   },

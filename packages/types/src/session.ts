@@ -1,21 +1,35 @@
-import { JsonRpcPayload } from "rpc-json-types";
+import { JsonRpcPayload } from "@json-rpc-tools/types";
 
 import { ISequence } from "./sequence";
 import { CryptoTypes } from "./crypto";
 import { RelayTypes } from "./relay";
-import { BlockchainPermissions, BlockchainState, JsonRpcPermissions, SignalTypes } from "./misc";
+import { SignalTypes, BlockchainTypes, JsonRpcPermissions, NotificationPermissions } from "./misc";
+import { SubscriptionEvent } from "./subscription";
 
 export declare namespace SessionTypes {
-  export interface Permissions {
+  export interface BasePermissions {
     jsonrpc: JsonRpcPermissions;
-    blockchain: BlockchainPermissions;
+    blockchain: BlockchainTypes.Permissions;
+  }
+
+  export interface StatePermissions {
+    controller: CryptoTypes.Participant;
+  }
+
+  export interface ProposedPermissions extends BasePermissions {
+    notifications: NotificationPermissions.Proposal;
+  }
+
+  export interface SettledPermissions extends BasePermissions {
+    notifications: NotificationPermissions.Settled;
+    state: StatePermissions;
   }
 
   export interface ProposeParams {
     signal: Signal;
     relay: RelayTypes.ProtocolOptions;
     metadata: Metadata;
-    permissions: Permissions;
+    permissions: ProposedPermissions;
     ttl?: number;
   }
 
@@ -30,7 +44,7 @@ export declare namespace SessionTypes {
     relay: RelayTypes.ProtocolOptions;
     proposer: Peer;
     signal: Signal;
-    permissions: Permissions;
+    permissions: ProposedPermissions;
     ttl: number;
   }
 
@@ -70,7 +84,7 @@ export declare namespace SessionTypes {
     self: CryptoTypes.Self;
     peer: Peer;
     state: State;
-    permissions: Permissions;
+    permissions: SettledPermissions;
     ttl: number;
     expiry: number;
   }
@@ -80,7 +94,7 @@ export declare namespace SessionTypes {
     update: Update;
   }
 
-  export type StateUpdate = { state: Partial<BlockchainState> };
+  export type StateUpdate = { state: Partial<BlockchainTypes.State> };
 
   export type Update = StateUpdate;
 
@@ -93,6 +107,16 @@ export declare namespace SessionTypes {
     topic: string;
   }
 
+  export interface Notification {
+    type: string;
+    data: any;
+  }
+
+  export interface NotificationEvent extends Notification {
+    topic: string;
+  }
+
+  export type NotifyParams = NotificationEvent;
   export interface DeleteParams {
     topic: string;
     reason: string;
@@ -104,7 +128,7 @@ export declare namespace SessionTypes {
     sharedKey: string;
     self: CryptoTypes.Self;
     peer: Peer;
-    permissions: Permissions;
+    permissions: SettledPermissions;
     expiry: number;
     state: State;
   }
@@ -131,12 +155,10 @@ export declare namespace SessionTypes {
 
   export type Outcome = Failed | Success;
 
-  export interface State extends BlockchainState {
-    controller: CryptoTypes.Participant;
-  }
+  export type State = BlockchainTypes.State;
 
   export interface Response {
-    state: Omit<State, "controller">;
+    state: State;
     metadata: Metadata;
   }
 }
@@ -151,4 +173,8 @@ export abstract class ISession extends ISequence<
   SessionTypes.DeleteParams,
   SessionTypes.ProposeParams,
   SessionTypes.SettleParams
-> {}
+> {
+  public abstract notify(params: SessionTypes.NotifyParams): Promise<void>;
+
+  protected abstract onNotification(event: SubscriptionEvent.Payload): Promise<void>;
+}

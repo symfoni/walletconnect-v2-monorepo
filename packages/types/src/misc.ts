@@ -1,3 +1,4 @@
+import { CryptoTypes } from "./crypto";
 import { RelayTypes } from "./relay";
 
 export declare namespace SignalTypes {
@@ -37,11 +38,24 @@ export interface JsonRpcPermissions {
   methods: string[];
 }
 
-export interface BlockchainPermissions {
-  chainIds: string[];
+export declare namespace NotificationPermissions {
+  export interface Proposal {
+    types: string[];
+  }
+
+  export interface Settled {
+    types: string[];
+    controller: CryptoTypes.Participant;
+  }
 }
-export interface BlockchainState {
-  accountIds: string[];
+
+export declare namespace BlockchainTypes {
+  export interface Permissions {
+    chainIds: string[];
+  }
+  export interface State {
+    accountIds: string[];
+  }
 }
 
 export interface UriParameters {
