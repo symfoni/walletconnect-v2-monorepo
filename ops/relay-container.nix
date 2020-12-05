@@ -5,7 +5,7 @@ pkgs ? import <nixpkgs> {}
 , relaysrc ? ../dist/relay.tar.gz
 }:
 let
-  relay = import ./relay.nix { inherit pkgs; src = relaysrc; };
+  relay = import ./relay.nix { inherit pkgs;};
   entrypoint = pkgs.writeScript "entrypoint.sh" ''
     #!${pkgs.stdenv.shell}
     set -e

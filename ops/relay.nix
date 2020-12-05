@@ -1,22 +1,17 @@
-{
-  pkgs ? import <nixpkgs> {}
-, name ? "relay"
-, src ? ../dist/relay.tar.gz
-}:
+{ pkgs ? <nixpkgs>}:
 let
+  nodeDependencies = (pkgs.callPackage ../servers/relay/default.nix {}).nodeDependencies;
 in
 pkgs.stdenv.mkDerivation {
-  name = name;
-  src = src;
+  name = "relay";
+  src = ../servers/relay/node-env.nix;
   buildInputs = [ pkgs.nodejs-14_x pkgs.python38 ];
   buildPhase = ''
-    export HOME=$TMPDIR
-    make build-relay
-    cd packages/relay && npx bundle-deps
-    tgzFile=$(npm pack | tail -1)
-  '';
-  installPhase = ''
-    mkdir -pv $out
-    tar xf  $tgzFile  --strip-components=1 -C $out
+    ln -s ${nodeDependencies}/lib/node_modules ./node_modules
+    export PATH="${nodeDependencies}/bin:$PATH"
+
+    # Build the distribution bundle in "dist"
+    npm run build
+    cp -r dist $out/
   '';
 }
