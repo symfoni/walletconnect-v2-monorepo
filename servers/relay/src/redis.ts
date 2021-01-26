@@ -85,15 +85,10 @@ export class RedisService {
   public setNotification(notification: Notification) {
     this.logger.debug(`Setting Notification`);
     this.logger.trace({ type: "method", method: "setNotification", notification });
-    return this.client.lpush([
+    this.client.lpush([
       `notification:${notification.topic}`,
       safeJsonStringify(notification)
-    ],
-      (err, res) => {
-        this.logger.error({ method: "setNotification", res});
-        return res
-      }
-    );
+    ])
   }
 
   public getNotification(topic: string): Promise<Array<Notification>> {
