@@ -20,10 +20,8 @@ services:
       REDIS_URL: redis://redis:6379/0
     deploy:
       resources:
-        limits:
-          memory: 3G
         reservations:
-          cpus: '0.4'
+          cpus: '0.6'
   relay1:
     image: ${RELAY_IMAGE}
     environment:
@@ -32,4 +30,4 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1G
+          memory: 2G
