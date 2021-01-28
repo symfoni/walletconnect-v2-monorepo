@@ -1,4 +1,4 @@
-FROM nginx:1.17-alpine
+FROM nginx:1.19-alpine
 
 RUN apk add --update --no-cache openssl-dev libffi-dev  musl-dev python3-dev py3-pip gcc openssl bash && \
   ln -fs /dev/stdout /var/log/nginx/access.log && \
@@ -11,4 +11,5 @@ COPY ./letsencrypt.conf /etc/nginx/letsencrypt.conf
 COPY ./dhparams.pem /etc/ssl/dhparams.pem
 COPY ./entry.sh /root/entry.sh
 
+USER nginx
 ENTRYPOINT ["/bin/bash", "/root/entry.sh"]
