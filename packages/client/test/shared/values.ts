@@ -3,7 +3,6 @@ import { ClientOptions, SessionTypes } from "@walletconnect/types";
 
 import { ROOT_DIR } from "../../../../ops/js/shared";
 
-// TODO: Relay Provider URL needs to be set from ops
 export const TEST_RELAY_URL = process.env.TEST_RELAY_URL
   ? process.env.TEST_RELAY_URL
   : "ws://localhost:5555";
@@ -60,3 +59,5 @@ export const TEST_SESSION_STATE = {
 
 export const TEST_ETHEREUM_REQUEST = { method: "eth_accounts" };
 export const TEST_ETHEREUM_RESULT = TEST_ETHEREUM_ACCOUNTS;
+
+export const TEST_RANDOM_REQUEST = { method: "random_method" };
