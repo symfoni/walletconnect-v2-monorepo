@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Set default variables
 root_domain="${DOMAIN_URL:-localhost}"

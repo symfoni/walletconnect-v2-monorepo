@@ -9,8 +9,10 @@ RUN pip3 install certbot-dns-cloudflare
 COPY ./nginx.conf /etc/nginx/nginx.conf
 COPY ./letsencrypt.conf /etc/nginx/letsencrypt.conf
 COPY ./dhparams.pem /etc/ssl/dhparams.pem
-COPY ./entry.sh /root/entry.sh
+COPY ./entry.sh /entry.sh
 
-RUN chown nginx /root/entry.sh
+RUN touch /run/nginx.pid
+RUN chown nginx /entry.sh
+RUN chown -R nginx /etc/nginx /run/nginx.pid /etc/letsencrypt /run/secrets
 USER nginx
-ENTRYPOINT ["/bin/bash", "/root/entry.sh"]
+ENTRYPOINT /entry.sh
