@@ -11,5 +11,6 @@ COPY ./letsencrypt.conf /etc/nginx/letsencrypt.conf
 COPY ./dhparams.pem /etc/ssl/dhparams.pem
 COPY ./entry.sh /root/entry.sh
 
+RUN chown nginx /root/entry
 USER nginx
 ENTRYPOINT ["/bin/bash", "/root/entry.sh"]
