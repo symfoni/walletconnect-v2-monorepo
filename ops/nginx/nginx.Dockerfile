@@ -11,21 +11,14 @@ COPY ./letsencrypt.conf /etc/nginx/letsencrypt.conf
 COPY ./dhparams.pem /etc/letsencrypt/dhparams.pem
 COPY ./entry.sh /entry.sh
 
-RUN mkdir -p /etc/letsencrypt \
-  /run/secrets \
-  /etc/nginx \
-  /var/www \
-  /var/cache/nginx \
-  /var/log
-RUN touch /run/nginx.pid
-RUN chown -R nginx:nginx /entry.sh \
-  /etc/nginx \
-  /run/nginx.pid \
-  /etc/letsencrypt \
+ENV nginxDirs=/etc/letsencrypt \
+  /etc/nginx/servers \
   /run/secrets \
   /var/www \
   /var/cache/nginx \
   /var/log \
   /var/lib/letsencrypt
+RUN mkdir -p $nginxDirs
+RUN chown -R nginx:nginx /entry.sh $nginxDirs
 USER nginx
 ENTRYPOINT /entry.sh
