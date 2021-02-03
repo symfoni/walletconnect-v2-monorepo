@@ -76,8 +76,8 @@ function configSubDomain () {
   makeCert "$fullDomain" $certDirectory
   cat - > "$SERVERS/$fullDomain.conf" <<EOF
 server {
-  listen  80;
-  listen [::]:80;
+  listen  8080;
+  listen [::]:8080;
   server_name $fullDomain;
   include /etc/nginx/letsencrypt.conf;
   location / {
@@ -85,8 +85,8 @@ server {
   }
 }
 server {
-  listen  443 ssl;
-  listen [::]:443 ssl;
+  listen  8443 ssl;
+  listen [::]:8443 ssl;
   ssl_certificate       $certDirectory/fullchain.pem;
   ssl_certificate_key   $certDirectory/privkey.pem;
   server_name $fullDomain;
@@ -134,8 +134,8 @@ function configRootDomain () {
   configPath="$SERVERS/$domain.conf"
   cat - > $configPath <<EOF
 server {
-  listen 80;
-  listen [::]:80;
+  listen 8080;
+  listen [::]:8080;
   server_name $domain;
   include /etc/nginx/letsencrypt.conf;
   location / {
@@ -143,8 +143,8 @@ server {
   }
 }
 server {
-  listen 443 ssl;
-  listen [::]:443 ssl;
+  listen 8443 ssl;
+  listen [::]:8443 ssl;
   server_name $domain;
   # https://stackoverflow.com/questions/35744650/docker-network-nginx-resolver
   resolver 127.0.0.11 valid=5s ipv6=off;
