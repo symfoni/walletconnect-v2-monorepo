@@ -91,6 +91,7 @@ server {
   ssl_certificate_key   $certDirectory/privkey.pem;
   server_name $fullDomain;
   location / {
+    limit_req zone=ddos_zone_one
 		proxy_pass "http://$subDomain:$dockerPort";
   }
 }
@@ -153,13 +154,15 @@ server {
   ssl_certificate_key       $certDirectory/privkey.pem;
 
   location / {
+    limit_req zone=ddos_zone_one
+    limit_except GET POST { deny all; }
+
     proxy_read_timeout      1800;
     proxy_send_timeout      1800;
     keepalive_timeout       1800;
     proxy_set_header        Host \$host;
     proxy_set_header        http_x_forwarded_for  \$remote_addr;
-    set \$app_server        http://upstream_app;
-    proxy_pass              \$app_server;
+    proxy_pass              http://upstream_app;
 
     # Websocket must have configs
     proxy_http_version      1.1;
