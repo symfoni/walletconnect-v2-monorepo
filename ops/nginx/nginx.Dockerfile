@@ -8,7 +8,7 @@ RUN pip3 install certbot-dns-cloudflare
 
 COPY ./nginx.conf /etc/nginx/nginx.conf
 COPY ./letsencrypt.conf /etc/nginx/letsencrypt.conf
-COPY ./dhparams.pem /etc/letsencrypt/dhparams.pem
+COPY ./dhparams.pem /etc/nginx/dhparams.pem
 COPY ./entry.sh /entry.sh
 
 ENV nginxDirs="/etc/letsencrypt \
