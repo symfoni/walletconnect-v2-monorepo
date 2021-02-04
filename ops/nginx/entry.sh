@@ -91,8 +91,8 @@ server {
   ssl_certificate_key   $certDirectory/privkey.pem;
   server_name $fullDomain;
   location / {
-    limit_req zone=ddos_zone_one
-		proxy_pass "http://$subDomain:$dockerPort";
+    limit_req zone=ddos_zone_one;
+    proxy_pass "http://$subDomain:$dockerPort";
   }
 }
 EOF
@@ -154,7 +154,7 @@ server {
   ssl_certificate_key       $certDirectory/privkey.pem;
 
   location / {
-    limit_req zone=ddos_zone_one
+    limit_req zone=ddos_zone_one;
     limit_except GET POST { deny all; }
 
     proxy_read_timeout      1800;
